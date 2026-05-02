@@ -1,0 +1,15 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+.streamlit/
+.uploads/
+.cache/
+.langchain/
+.ruff_cache/
+.pytest_cache/
+*.ifc

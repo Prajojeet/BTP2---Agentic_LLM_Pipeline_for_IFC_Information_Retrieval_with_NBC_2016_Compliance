@@ -1,0 +1,15 @@
+# Mirrors [project.dependencies] in pyproject.toml.
+# Prefer `pip install -e .` for the editable install + console script.
+langgraph>=0.2.60,<0.4
+langgraph-checkpoint>=2.0.0
+langchain>=0.3.10,<0.4
+langchain-core>=0.3.20,<0.4
+langchain-openai>=0.2.10,<0.4
+ifcopenshell>=0.8.0
+lark>=1.1.9
+numpy>=1.24,<3
+shapely>=2.0
+streamlit>=1.36
+python-dotenv>=1.0.1
+pydantic>=2.7,<3
+tenacity>=8.4

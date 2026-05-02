@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ifc-agent"
+version = "0.2.0"
+description = "Agentic NL → IFC retrieval + NBC 2016 fire-safety compliance (Hellin EC3 2025 replication, beta)"
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+authors = [{ name = "Prajojeet Pradhan" }]
+license = { text = "MIT" }
+
+# Pinned to versions known to play well together as of 2026-Q2.
+# If you need to upgrade, do it one library at a time and re-test.
+dependencies = [
+    # Agentic core
+    "langgraph>=0.2.60,<0.4",
+    "langgraph-checkpoint>=2.0.0",  # MemorySaver for session memory
+    "langchain>=0.3.10,<0.4",
+    "langchain-core>=0.3.20,<0.4",
+    "langchain-openai>=0.2.10,<0.4",
+
+    # IFC / BIM
+    "ifcopenshell>=0.8.0",      # 0.8.x ships pre-built wheels for Win/Mac/Linux
+    "lark>=1.1.9",              # required by ifcopenshell.util utilities
+    "numpy>=1.24,<3",
+    "shapely>=2.0",
+
+    # UI
+    "streamlit>=1.36",
+
+    # Utilities
+    "python-dotenv>=1.0.1",
+    "pydantic>=2.7,<3",
+    "tenacity>=8.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+ifc-agent = "ifc_agent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ifc_agent = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
