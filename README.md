@@ -1,10 +1,6 @@
 # IFC Agent — Natural-language information retrieval from IFC models
 
-A faithful re-implementation of the agentic workflow from:
-
-> **Hellin, S., Nousias, S., & Borrmann, A. (2025).**
-> *Natural Language Information Retrieval from BIM Models: An LLM-Based Agentic Workflow Approach.*
-> European Conference on Computing in Construction (EC3) 2025, Porto.
+A faithful implementation of the agentic workflow.
 
 The system lets you upload an arbitrary `.ifc` file in a Streamlit interface and ask questions about it in plain English. Behind the scenes it runs a two-step LangGraph workflow:
 
