@@ -20,23 +20,21 @@ The original 29 tools match Table 1 of the paper exactly. Intentional deviations
 ## 1. Quick start
 
 ```bash
-# 1. Clone or unzip the project
-cd ifc-agent
 
-# 2. Create + activate a virtualenv (Python 3.10 – 3.12)
+# 1. Create + activate a virtualenv (Python 3.10 – 3.12)
 python -m venv .venv
 source .venv/bin/activate            # macOS / Linux
 # .venv\Scripts\Activate.ps1         # Windows PowerShell
 
-# 3. Install
+# 2. Install
 pip install -e .
 
-# 4. Set your OpenAI key
+# 3. Set your OpenAI key
 cp .env.example .env
 # Open .env and paste your sk-... key
 # (Optional) change IFC_AGENT_MODEL to gpt-5.4-mini, gpt-5.2, etc.
 
-# 5. Run the UI
+# 4. Run the UI
 streamlit run app.py
 ```
 
@@ -279,11 +277,7 @@ The Streamlit UI shows every reasoning step, every tool call, every JSON observa
 
 ---
 
-## 7. License
-
-MIT. The Hellin et al. paper is © the authors; we re-implement the *methodology* (CoT → ReAct two-step, 29 named tools), not their source code.
-
-## 8. Citation
+## 7. Citation
 
 If this codebase helps your thesis, please cite:
 
