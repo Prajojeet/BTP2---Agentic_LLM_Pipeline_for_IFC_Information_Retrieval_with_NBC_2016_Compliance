@@ -71,7 +71,7 @@ The agent works best for questions that map onto the 29 tools. Examples that sho
 | **Memory** | *List every compliance finding so far.* |
 | **Memory** | *Show me the failing rooms from finding F-A1B2C3D4.* |
 
-Per the paper's results, expect ~95 % accuracy when the answer is *directly* encoded in the IFC properties, and lower (~62 %) when it requires multi-hop reasoning or geometric inference.
+Per other similar researchs results, expect ~95 % accuracy when the answer is *directly* encoded in the IFC properties, and lower (~62 %) when it requires multi-hop reasoning or geometric inference.
 
 ---
 
@@ -214,7 +214,7 @@ IFC_AGENT_TEMPERATURE=0
 IFC_AGENT_MAX_ITERATIONS=25
 ```
 
-The paper reports best results with **Claude 3.5 Sonnet**. We default to **GPT-5.4** because the user has OpenAI tokens and the architecture is model-agnostic (any chat model with tool calling will work — just change the model string).
+For agentic frameworks, best results are generally achieved with **Claude 3.5 Sonnet**. We default to **GPT-5.4** because I had OpenAI tokens and the architecture is model-agnostic (any chat model with tool calling will work — just change the model string).
 
 ### Optional: LangSmith tracing
 
