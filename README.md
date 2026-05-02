@@ -7,11 +7,10 @@ The system lets you upload an arbitrary `.ifc` file in a Streamlit interface and
 1. **Chain-of-Thought tool selection** — a single LLM call picks the smallest sufficient subset from a library of **29 IFCOpenShell tools** (Information Retrieval, Quantity Computation, Geometric Processing) **plus 9 fire-safety / memory tools** (NBC 2016 Part 4 compliance, beta).
 2. **ReAct execution** — `langgraph.prebuilt.create_react_agent` runs the reasoning ↔ acting ↔ observing loop *with only the picked tools in its context window*.
 
-The original 29 tools match Table 1 of the paper exactly. Intentional deviations from the paper:
+There are 29 tools in Table 1 thay are used to derive information about the model. Here are some technical exceptional features that are State-of-the-art:
 
-- **DSPy → LangGraph.** The paper uses DSPy. We use LangGraph because it gives explicit, debuggable nodes that map 1-to-1 with the paper's diagram and supports MemorySaver out of the box.
-- **Pre-bundled IFCs → file upload.** The paper had a closed corpus (Duplex + Dental Clinic). This app loads any IFC the user uploads through Streamlit.
-- **No benchmark eval harness.** The user explicitly does not want the IFC-Bench evaluation loop, only the live querying interface.
+- **LangGraph.** We use LangGraph because it gives explicit, debuggable nodes that map 1-to-1 with the paper's diagram and supports MemorySaver out of the box.
+- **File upload.** The app loads any IFC the user uploads through Streamlit.
 - **+ NBC 2016 Part 4 fire-safety beta.** A second tool family (`check_means_of_egress`, `check_travel_distance`, `check_exit_widths`, `check_dead_end_corridors`, `check_compartmentation`, `check_refuge_area`) the selector can reach for when the question is about Indian fire-safety code conformance.
 - **+ Session memory.** LangGraph's `MemorySaver` carries conversation history across turns; a separate `FindingsStore` persists structured compliance findings so follow-up questions like *"show me the rooms that failed travel distance"* don't re-run the check.
 
