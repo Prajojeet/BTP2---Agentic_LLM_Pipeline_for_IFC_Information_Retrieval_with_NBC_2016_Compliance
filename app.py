@@ -9,6 +9,13 @@ Architecture
 - One ``FindingsStore``  per session, shared with the compliance tools.
 - Conversation is rendered as chat bubbles; per-turn we expose the picked
   tools and the ReAct trace inside collapsible details.
+
+Notes on rendering
+------------------
+The assistant turn uses ``st.chat_message`` so that markdown emitted by the
+LLM (headings, bold, bullets, code fences) renders natively. The user turn
+keeps its custom HTML bubble for the right-aligned, steel-blue look — user
+messages are plain text and are HTML-escaped to stay safe.
 """
 from __future__ import annotations
 
@@ -46,9 +53,101 @@ st.set_page_config(
 
 
 def _inject_css() -> None:
+    """Inject the industrial-light theme + a small extra block that styles
+    Streamlit's native ``st.chat_message`` so the assistant turn matches the
+    existing bubble look while still rendering markdown natively."""
     css_path = Path(__file__).parent / "assets" / "styles.css"
-    if css_path.exists():
-        st.markdown(f"<style>{css_path.read_text()}</style>", unsafe_allow_html=True)
+    base_css = css_path.read_text() if css_path.exists() else ""
+
+    # Extra rules: re-theme st.chat_message for the assistant role so it looks
+    # like the original white-card bubble, and tighten spacing around it.
+    chat_message_css = """
+    /* Streamlit's chat_message wrapper — soften and theme it to match */
+    [data-testid="stChatMessage"] {
+        background: white;
+        border: 1px solid var(--concrete-300);
+        border-radius: var(--radius-md);
+        border-bottom-left-radius: 2px;
+        box-shadow: var(--shadow-sm);
+        padding: 12px 16px;
+        margin-bottom: 6px;
+        max-width: 85%;
+    }
+    /* Avatar circle inside chat_message */
+    [data-testid="stChatMessage"] [data-testid="stChatMessageAvatarAssistant"],
+    [data-testid="stChatMessage"] [data-testid="chatAvatarIcon-assistant"] {
+        background: white !important;
+        border: 1px solid var(--concrete-300);
+        color: var(--steel-700) !important;
+    }
+    /* Markdown inside the assistant bubble — natural civil-eng look */
+    [data-testid="stChatMessage"] p,
+    [data-testid="stChatMessage"] li {
+        font-size: 0.96rem;
+        line-height: 1.5;
+        color: var(--concrete-900);
+        margin-bottom: 0.4em;
+    }
+    [data-testid="stChatMessage"] h1,
+    [data-testid="stChatMessage"] h2,
+    [data-testid="stChatMessage"] h3,
+    [data-testid="stChatMessage"] h4 {
+        color: var(--steel-700);
+        margin-top: 0.4em;
+        margin-bottom: 0.3em;
+    }
+    [data-testid="stChatMessage"] code {
+        background: var(--concrete-100);
+        color: var(--steel-700);
+        font-family: var(--mono);
+        font-size: 0.85em;
+        padding: 1px 5px;
+        border-radius: 3px;
+        border: 1px solid var(--concrete-200);
+    }
+    [data-testid="stChatMessage"] pre {
+        background: var(--concrete-50);
+        border: 1px solid var(--concrete-300);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        font-size: 0.86rem;
+        overflow-x: auto;
+    }
+    [data-testid="stChatMessage"] pre code {
+        background: transparent;
+        border: none;
+        padding: 0;
+    }
+    [data-testid="stChatMessage"] table {
+        border-collapse: collapse;
+        font-size: 0.9rem;
+        margin: 6px 0;
+    }
+    [data-testid="stChatMessage"] th,
+    [data-testid="stChatMessage"] td {
+        border: 1px solid var(--concrete-300);
+        padding: 4px 8px;
+    }
+    [data-testid="stChatMessage"] th {
+        background: var(--concrete-100);
+    }
+    /* Tools-pill row sits beneath the bubble */
+    .tools-row {
+        margin: -2px 0 14px 56px;  /* align under the bubble, past the avatar */
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--concrete-700);
+    }
+    .tools-row .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--concrete-100);
+        border: 1px solid var(--concrete-300);
+        margin-right: 6px;
+    }
+    """
+    st.markdown(f"<style>{base_css}\n{chat_message_css}</style>", unsafe_allow_html=True)
 
 
 _inject_css()
@@ -263,6 +362,83 @@ with right:
 
 
 # ----- Left panel: chat -----
+def _escape(text: str) -> str:
+    """HTML-escape user-supplied plain text for safe injection into the bubble."""
+    return (
+        (text or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\n", "<br>")
+    )
+
+
+def _render_user_turn(content: str) -> None:
+    """Right-aligned steel-blue bubble for the human's turn (plain text)."""
+    st.markdown(
+        f'<div class="chat-row user">'
+        f'<div class="chat-bubble">{_escape(content)}</div>'
+        f'<div class="chat-avatar">YOU</div>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _render_assistant_turn(content: str, meta: dict) -> None:
+    """Left-aligned bubble for the agent's turn — rendered as proper markdown.
+
+    Uses ``st.chat_message`` so headings, bold, lists and code fences emitted
+    by the LLM render correctly. Custom CSS in ``_inject_css`` re-themes the
+    chat_message wrapper to match the original white-card bubble look.
+    """
+    with st.chat_message("assistant", avatar="🤖"):
+        st.markdown(content)
+
+    # Tools-used pills row, just under the bubble
+    if meta.get("selected_tools"):
+        pills_html = "".join(
+            f'<span class="tool-chip">{t}</span>' for t in meta["selected_tools"]
+        )
+        st.markdown(
+            f'<div class="tools-row"><span class="pill">tools</span>{pills_html}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # Reasoning + ReAct trace
+    if meta.get("trace") or meta.get("selection_reasoning"):
+        with st.expander("Show reasoning & trace", expanded=False):
+            if meta.get("selection_reasoning"):
+                st.markdown("**Tool selection reasoning**")
+                st.write(meta["selection_reasoning"])
+            if meta.get("trace"):
+                st.markdown("**ReAct trace**")
+                for step in meta["trace"]:
+                    role = step.get("role", "?")
+                    if role == "user":
+                        continue  # already shown as bubble
+                    with st.container():
+                        st.markdown(
+                            f'<div class="trace-step {role}">'
+                            f'<span class="role">{role}'
+                            f'{" · " + step.get("name", "") if role == "tool" else ""}'
+                            f"</span></div>",
+                            unsafe_allow_html=True,
+                        )
+                        if role == "assistant":
+                            if step.get("content"):
+                                st.write(step["content"])
+                            if step.get("tool_calls"):
+                                st.json(step["tool_calls"], expanded=False)
+                        else:  # tool
+                            content = step.get("content")
+                            if isinstance(content, str):
+                                try:
+                                    content = json.loads(content)
+                                except Exception:
+                                    pass
+                            st.json(content, expanded=False)
+
+
 def _render_chat_history() -> None:
     if not st.session_state.turns:
         st.markdown(
@@ -280,74 +456,9 @@ def _render_chat_history() -> None:
 
     for turn in st.session_state.turns:
         if turn["role"] == "user":
-            st.markdown(
-                f'<div class="chat-row user">'
-                f'<div class="chat-bubble">{_escape(turn["content"])}</div>'
-                f'<div class="chat-avatar">YOU</div>'
-                f"</div>",
-                unsafe_allow_html=True,
-            )
+            _render_user_turn(turn["content"])
         else:
-            meta = turn.get("meta", {})
-            tool_pills = ""
-            if meta.get("selected_tools"):
-                tool_pills = "".join(
-                    f'<span class="tool-chip">{t}</span>'
-                    for t in meta["selected_tools"]
-                )
-            st.markdown(
-                f'<div class="chat-row assistant">'
-                f'<div class="chat-avatar">A</div>'
-                f'<div class="chat-bubble">'
-                f'<div>{_escape(turn["content"])}</div>'
-                f'<div class="chat-meta"><span class="pill">tools</span>{tool_pills}</div>'
-                f"</div>"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-            # Trace expander outside the bubble for layout cleanliness
-            if meta.get("trace") or meta.get("selection_reasoning"):
-                with st.expander("Show reasoning & trace", expanded=False):
-                    if meta.get("selection_reasoning"):
-                        st.markdown("**Tool selection reasoning**")
-                        st.write(meta["selection_reasoning"])
-                    if meta.get("trace"):
-                        st.markdown("**ReAct trace**")
-                        for step in meta["trace"]:
-                            role = step.get("role", "?")
-                            if role == "user":
-                                continue  # already shown as bubble
-                            with st.container():
-                                st.markdown(
-                                    f'<div class="trace-step {role}">'
-                                    f'<span class="role">{role}'
-                                    f'{" · " + step.get("name", "") if role == "tool" else ""}'
-                                    f"</span></div>",
-                                    unsafe_allow_html=True,
-                                )
-                                if role == "assistant":
-                                    if step.get("content"):
-                                        st.write(step["content"])
-                                    if step.get("tool_calls"):
-                                        st.json(step["tool_calls"], expanded=False)
-                                else:  # tool
-                                    content = step.get("content")
-                                    if isinstance(content, str):
-                                        try:
-                                            content = json.loads(content)
-                                        except Exception:
-                                            pass
-                                    st.json(content, expanded=False)
-
-
-def _escape(text: str) -> str:
-    return (
-        (text or "")
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\n", "<br>")
-    )
+            _render_assistant_turn(turn["content"], turn.get("meta") or {})
 
 
 def _run_turn(query: str) -> None:
